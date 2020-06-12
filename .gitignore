@@ -1,0 +1,5 @@
+brouter-profiles/customprofiles/*.brf
+brouter-profiles/*.brf
+brouter-profiles/lookups.dat
+brouter-segments/*.rd5
+.env

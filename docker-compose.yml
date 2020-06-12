@@ -1,0 +1,45 @@
+version: "3"
+
+volumes:
+  traefik-etc:
+
+services:
+  traefik:
+    image: traefik
+    command: --api
+      --api.dashboard=true
+      --api.insecure=true
+      --certificatesResolvers.le.acme.email=${ACME_EMAIL}
+      --certificatesResolvers.le.acme.storage=acme.json
+      --certificatesResolvers.le.acme.httpChallenge.entryPoint=http
+      --entryPoints.http.address=:80
+      --entryPoints.https.address=:443
+      --providers.docker
+      --providers.docker.exposedByDefault=false
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - traefik-etc:/etc/traefik
+      - /var/run/docker.sock:/var/run/docker.sock
+  client:
+    image: schmic/brouter-vue:latest
+    labels:
+      - traefik.enable=true
+      - traefik.http.services.vue.loadbalancer.server.port=80
+      - traefik.http.routers.vue.entrypoints=https
+      - traefik.http.routers.vue.rule=Host(`${PROJECT_HOST}`) && PathPrefix(`/`)
+      - traefik.http.routers.vue.tls=true
+      - traefik.http.routers.vue.tls.certresolver=le
+  server:
+    image: schmic/brouter-server:latest
+    labels:
+      - traefik.enable=true
+      - traefik.http.services.brouter.loadbalancer.server.port=17777
+      - traefik.http.routers.brouter.entrypoints=https
+      - traefik.http.routers.brouter.rule=Host(`${PROJECT_HOST}`) && PathPrefix(`/brouter`)
+      - traefik.http.routers.brouter.tls=true
+      - traefik.http.routers.brouter.tls.certresolver=le
+    volumes:
+      - ./brouter-segments:/opt/brouter/segments
+      - ./brouter-profiles:/opt/brouter/profiles
